@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="373.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.parser.MainWindowController">
+   <top>
+      <AnchorPane prefHeight="400.0" prefWidth="419.0" BorderPane.alignment="CENTER">
+         <children>
+            <Button layoutX="64.0" layoutY="49.0" mnemonicParsing="false" onAction="#selectFiles" text="Wybierz pliki" />
+            <Button layoutX="218.0" layoutY="49.0" mnemonicParsing="false" onAction="#convert" text="Konwertuj" />
+            <ListView fx:id="itemsList" layoutX="21.0" layoutY="110.0" prefHeight="266.0" prefWidth="327.0" />
+         </children>
+      </AnchorPane>
+   </top>
+</BorderPane>
