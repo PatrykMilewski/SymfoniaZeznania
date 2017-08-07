@@ -12,25 +12,26 @@ import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
 public class MainWindowController {
     
-    private Stage stage;
+    private final static Path SELECTOR_START_FILE_PATH = Paths.get("C:\\dane\\Intrastat");
     
+    private Stage stage;
     private Map<SingleRow, HashSet<Element>> elementsMap;
     
     @FXML
     private ListView<XmlFileOnList> itemsList;
     
     private List<XmlFileOnList> xmlFiles;
-    private TreeSet<Element> compressedElements;
     private boolean filesSelected = false;
     private Integer lacznaWartoscFaktur;
     
@@ -45,6 +46,10 @@ public class MainWindowController {
     @FXML
     public void selectFiles() {
         FileChooser fileChooser = new FileChooser();
+        
+        if (Files.exists(SELECTOR_START_FILE_PATH))
+            fileChooser.setInitialDirectory(SELECTOR_START_FILE_PATH.toFile());
+        
         fileChooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("XML documents", "*.xml"));
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("All files", "*.*"));
@@ -105,7 +110,7 @@ public class MainWindowController {
                 }
     
                 // comparator for having xml elements sorted by PozId attribute
-                compressedElements = new TreeSet<>((o1, o2) -> {
+                TreeSet<Element> compressedElements = new TreeSet<>((o1, o2) -> {
                     Integer first = Integer.parseInt(o1.getAttributeValue("PozId"));
                     Integer second = Integer.parseInt(o2.getAttributeValue("PozId"));
                     return first.compareTo(second);
@@ -118,31 +123,33 @@ public class MainWindowController {
                     compressedElements.add(sumElements(entry.getValue(), pozId));
                     pozId++;
                 }
+                pozId--;
                 
-                // set value of lacznaWartoscFaktur
+                // set value of LacznaWartoscFaktur attribute
                 deklaracja.getAttribute("LacznaWartoscFaktur").setValue(lacznaWartoscFaktur.toString());
     
+                // set value of LacznaLiczbaPozycji attribute
+                deklaracja.getAttribute("LacznaLiczbaPozycji").setValue(pozId.toString());
+                
                 // remove all children and then add converted one, to avoid unneeded children
                 deklaracja.removeChildren("Towar", deklaracjaNamespace);
                 deklaracja.addContent(compressedElements);
                 
                 // prepare path for converted xml file
                 XMLOutputter xmlOutputter = new XMLOutputter();
-                String xmlFileName = xmlFile.getFile().getName();
                 StringBuilder sb = new StringBuilder();
-                sb.append(Paths.get(document.getBaseURI().replaceFirst("file:/", "")));
-                sb.insert(xmlFileName.lastIndexOf(".xml"), "CNV-");
+                sb.append(document.getBaseURI().replaceFirst("file:/", ""));
                 String newXmlFilePath = sb.toString();
                 
                 // save xml file
-                FileWriter fileWriter = new FileWriter(newXmlFilePath);
+                Writer fileWriter = new OutputStreamWriter(new FileOutputStream(newXmlFilePath), StandardCharsets.UTF_8);
                 xmlOutputter.setFormat(Format.getPrettyFormat());
                 xmlOutputter.output(document, fileWriter);
                 fileWriter.flush();
                 fileWriter.close();
     
                 // set xmlFile as successfully converted
-                xmlFile.setIsTransfomed(true);
+                xmlFile.setIsTransformed(true);
             }
             catch (JDOMException | IOException e) {
                 MyAlerts.showExceptionAlert("Wystąpił wyjątek podczas przetwarzania pliku xml.", e, false);

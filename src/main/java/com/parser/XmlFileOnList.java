@@ -12,7 +12,7 @@ public class XmlFileOnList {
         this.file = file;
     }
     
-    public void setIsTransfomed(boolean newValue) {
+    public void setIsTransformed(boolean newValue) {
         isTransformed = newValue;
     }
 

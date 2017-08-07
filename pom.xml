@@ -22,7 +22,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.application.gui.windows.MainWindow</mainClass>
+                            <mainClass>com.parser.MainWindow</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
