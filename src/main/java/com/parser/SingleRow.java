@@ -29,4 +29,11 @@ public class SingleRow {
         return Objects.hash(idKontrahenta, kodTowarowy);
     }
     
+    public String getIdKontrahenta() {
+        return idKontrahenta;
+    }
+    
+    public String getKodTowarowy() {
+        return kodTowarowy;
+    }
 }

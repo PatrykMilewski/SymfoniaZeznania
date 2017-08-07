@@ -90,24 +90,7 @@ public class MainWindowController {
                 // get all children of Deklaracja, whose name is Towar
                 List<Element> towary = deklaracja.getChildren("Towar", deklaracjaNamespace);
                 
-                // grouping children with the same IdKontrahenta and KodTowarowy attributes into one set
-                for (Element element : towary) {
-                    SingleRow singleRow = new SingleRow(element.getAttributeValue("IdKontrahenta"),
-                            element.getAttributeValue("KodTowarowy"));
-                    
-                    // if map already contains one
-                    if (elementsMap.containsKey(singleRow)) {
-                        Set<Element> singleSet = elementsMap.get(singleRow);
-                        if (!singleSet.contains(element))
-                            singleSet.add(element);
-                    }
-                    // if a new found
-                    else {
-                        HashSet<Element> newSet = new HashSet<>();
-                        newSet.add(element);
-                        elementsMap.put(singleRow, newSet);
-                    }
-                }
+                groupXmlElements(towary);
     
                 // comparator for having xml elements sorted by PozId attribute
                 TreeSet<Element> compressedElements = new TreeSet<>((o1, o2) -> {
@@ -115,41 +98,30 @@ public class MainWindowController {
                     Integer second = Integer.parseInt(o2.getAttributeValue("PozId"));
                     return first.compareTo(second);
                 });
+                
+                TreeMap<SingleRow, HashSet<Element>> elementsMapSorted =
+                        new TreeMap<>((o1, o2) -> {
+                            int compare = o1.getIdKontrahenta().compareTo(o2.getIdKontrahenta());
+                            if (compare == 0)
+                                return o1.getKodTowarowy().compareTo(o2.getKodTowarowy());
+                            else
+                                return compare;
+                        });
+    
+                elementsMapSorted.putAll(elementsMap);
     
                 // converting every single set with multipile Towar xml elements to single Towar xml element
                 Integer pozId = 1;
                 lacznaWartoscFaktur = 0;
-                for (Map.Entry<SingleRow, HashSet<Element>> entry : elementsMap.entrySet()) {
+                for (Map.Entry<SingleRow, HashSet<Element>> entry : elementsMapSorted.entrySet()) {
                     compressedElements.add(sumElements(entry.getValue(), pozId));
                     pozId++;
                 }
                 pozId--;
                 
-                // set value of LacznaWartoscFaktur attribute
-                deklaracja.getAttribute("LacznaWartoscFaktur").setValue(lacznaWartoscFaktur.toString());
-    
-                // set value of LacznaLiczbaPozycji attribute
-                deklaracja.getAttribute("LacznaLiczbaPozycji").setValue(pozId.toString());
+                reorganiseElementsInDocument(deklaracja, compressedElements, pozId);
                 
-                // remove all children and then add converted one, to avoid unneeded children
-                deklaracja.removeChildren("Towar", deklaracjaNamespace);
-                deklaracja.addContent(compressedElements);
-                
-                // prepare path for converted xml file
-                XMLOutputter xmlOutputter = new XMLOutputter();
-                StringBuilder sb = new StringBuilder();
-                sb.append(document.getBaseURI().replaceFirst("file:/", ""));
-                String newXmlFilePath = sb.toString();
-                
-                // save xml file
-                Writer fileWriter = new OutputStreamWriter(new FileOutputStream(newXmlFilePath), StandardCharsets.UTF_8);
-                xmlOutputter.setFormat(Format.getPrettyFormat());
-                xmlOutputter.output(document, fileWriter);
-                fileWriter.flush();
-                fileWriter.close();
-    
-                // set xmlFile as successfully converted
-                xmlFile.setIsTransformed(true);
+                saveDocumentToFile(document, xmlFile);
             }
             catch (JDOMException | IOException e) {
                 MyAlerts.showExceptionAlert("Wystąpił wyjątek podczas przetwarzania pliku xml.", e, false);
@@ -160,6 +132,45 @@ public class MainWindowController {
         // refresh list view with new states of files (converted or not)
         itemsList.getItems().removeAll(xmlFiles);
         itemsList.getItems().addAll(xmlFiles);
+    }
+    
+    private void saveDocumentToFile(Document document, XmlFileOnList xmlFile) throws IOException {
+        // prepare path for converted xml file
+        XMLOutputter xmlOutputter = new XMLOutputter();
+        StringBuilder sb = new StringBuilder();
+        sb.append(document.getBaseURI().replaceFirst("file:/", ""));
+        String newXmlFilePath = sb.toString();
+    
+        // save xml file
+        Writer fileWriter = new OutputStreamWriter(new FileOutputStream(newXmlFilePath), StandardCharsets.UTF_8);
+        xmlOutputter.setFormat(Format.getPrettyFormat());
+        xmlOutputter.output(document, fileWriter);
+        fileWriter.flush();
+        fileWriter.close();
+    
+        // set xmlFile as successfully converted
+        xmlFile.setIsTransformed(true);
+    }
+    
+    private void reorganiseElementsInDocument(Element deklaracja, TreeSet<Element> compressedElements, Integer pozId) {
+        Namespace deklaracjaNamespace = deklaracja.getNamespace();
+    
+        // set value of LacznaWartoscFaktur attribute
+        deklaracja.getAttribute("LacznaWartoscFaktur").setValue(lacznaWartoscFaktur.toString());
+    
+        // set value of LacznaLiczbaPozycji attribute
+        deklaracja.getAttribute("LacznaLiczbaPozycji").setValue(pozId.toString());
+    
+        // remove all children and then add converted one, to avoid unneeded children
+        deklaracja.removeChildren("Towar", deklaracjaNamespace);
+    
+        // remove Wypelniajacy child, to move it after Towar children
+        Element wypelniajacy = deklaracja.getChild("Wypelniajacy", deklaracjaNamespace);
+        deklaracja.removeChild("Wypelniajacy", deklaracjaNamespace);
+    
+        // add everything back in the right order
+        deklaracja.addContent(compressedElements);
+        deklaracja.addContent(wypelniajacy);
     }
     
     // sum elements in sets by xml attributes
@@ -191,5 +202,41 @@ public class MainWindowController {
         BigDecimal bd = new BigDecimal(value);
         bd = bd.setScale(0, RoundingMode.HALF_UP);
         return bd.doubleValue();
+    }
+    
+    // grouping children with the same IdKontrahenta and KodTowarowy attributes into one set
+    
+    private void groupXmlElements(List<Element> towary) {
+        List<String> emptyWarnings = new LinkedList<>();
+        
+        for (Element element : towary) {
+        
+            // if IdKontrahenta is empty string, display warning, but proceed processing
+            String idKontrahenta = element.getAttributeValue("IdKontrahenta");
+            if (idKontrahenta.length() == 0)
+                emptyWarnings.add(element.getAttributeValue("PozId"));
+        
+            SingleRow singleRow = new SingleRow(idKontrahenta, element.getAttributeValue("KodTowarowy"));
+        
+            // if map already contains one
+            if (elementsMap.containsKey(singleRow)) {
+                Set<Element> singleSet = elementsMap.get(singleRow);
+                if (!singleSet.contains(element))
+                    singleSet.add(element);
+            }
+            // if a new found
+            else {
+                HashSet<Element> newSet = new HashSet<>();
+                newSet.add(element);
+                elementsMap.put(singleRow, newSet);
+            }
+        }
+    
+        StringBuilder sb = new StringBuilder();
+        for (String warning : emptyWarnings)
+            sb.append(warning).append(" ");
+    
+        MyAlerts.showWarningAlert("", "Puste pole",
+                "Atrybut IdKontrahenta jest pusty dla elementu PozId: " + sb.toString(), false);
     }
 }
