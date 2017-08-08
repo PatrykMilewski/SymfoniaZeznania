@@ -11,6 +11,7 @@
             <Button layoutX="64.0" layoutY="49.0" mnemonicParsing="false" onAction="#selectFiles" text="Wybierz pliki" />
             <Button layoutX="218.0" layoutY="49.0" mnemonicParsing="false" onAction="#convert" text="Konwertuj" />
             <ListView fx:id="itemsList" layoutX="21.0" layoutY="110.0" prefHeight="266.0" prefWidth="327.0" />
+            <Button layoutX="327.0" layoutY="14.0" mnemonicParsing="false" onAction="#showAbout" prefHeight="7.0" prefWidth="32.0" styleClass="about-button" stylesheets="@../css/mainWindow.css" text="?" />
          </children>
       </AnchorPane>
    </top>

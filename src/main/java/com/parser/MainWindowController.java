@@ -1,6 +1,9 @@
 package com.parser;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.ListView;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -137,9 +140,7 @@ public class MainWindowController {
     private void saveDocumentToFile(Document document, XmlFileOnList xmlFile) throws IOException {
         // prepare path for converted xml file
         XMLOutputter xmlOutputter = new XMLOutputter();
-        StringBuilder sb = new StringBuilder();
-        sb.append(document.getBaseURI().replaceFirst("file:/", ""));
-        String newXmlFilePath = sb.toString();
+        String newXmlFilePath = document.getBaseURI().replaceFirst("file:/", "");
     
         // save xml file
         Writer fileWriter = new OutputStreamWriter(new FileOutputStream(newXmlFilePath), StandardCharsets.UTF_8);
@@ -238,5 +239,19 @@ public class MainWindowController {
     
         MyAlerts.showWarningAlert("", "Puste pole",
                 "Atrybut IdKontrahenta jest pusty dla elementu PozId: " + sb.toString(), false);
+    }
+    
+    public void showAbout() {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getClassLoader().getResource("fxml/aboutWindow.fxml"));
+            Parent root = fxmlLoader.load();
+            Stage stage = new Stage();
+            stage.setTitle("About");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
     }
 }
